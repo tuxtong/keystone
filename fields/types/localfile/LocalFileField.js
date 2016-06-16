@@ -149,12 +149,15 @@ module.exports = Field.create({
 	},
 
 	renderFileDetails (add) {
+		var isPicture = this.getFilename().match(/\.(jpeg|jpg|gif|png)$/) != null;
 		var values = null;
-		var full
 
 		if (this.hasFile() && !this.state.removeExisting) {
 			values = (
 				<div className="file-values">
+					{isPicture &&
+						this.renderImagePreview()
+					}
 					<FormInput noedit>{this.getFullUrl()}</FormInput>
 				</div>
 			);
@@ -232,6 +235,10 @@ module.exports = Field.create({
 	renderImagePreview () {
 		var iconClassName;
 		var className = ['image-preview'];
+		var style = {
+			float: 'left',
+			margin: '0 10px 10px 0'
+		};
 
 		if (this.hasLocal()) {
 			iconClassName = classnames(iconClassUploadPending);
@@ -247,13 +254,13 @@ module.exports = Field.create({
 		var url = this.props.value.href;
 
 		if (url) {
-			body = <a className="img-thumbnail" href={url} onClick={this.openLightbox.bind(this, 0)} target="__blank">{body}</a>;
+			body = <a className="img-thumbnail" href={url} onClick={this.openLightbox.bind(this, 0)} target="__blank" style={style}>{body}</a>;
 		} else {
 			body = <div className="img-thumbnail">{body}</div>;
 		}
 
 		return (
-			<div key={this.getFilename() + '_preview'} className={className}>
+			<div>
 				{body}
 			</div>
 		);
@@ -292,13 +299,13 @@ module.exports = Field.create({
 
 		if (this.shouldRenderField()) {
 			if (hasFile) {
-				container.push(this.renderImagePreview());
+				// container.push(this.renderImagePreview());
 				container.push(this.renderFileDetails(this.renderAlert()));
 			}
 			body.push(this.renderFileToolbar());
 		} else {
 			if (hasFile) {
-				container.push(this.renderImagePreview());
+				// container.push(this.renderImagePreview());
 				container.push(this.renderFileDetails());
 			} else {
 				container.push(<FormInput noedit>no file</FormInput>);

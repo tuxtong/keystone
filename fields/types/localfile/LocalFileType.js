@@ -278,6 +278,7 @@ localfile.prototype.uploadFile = function (item, file, update, callback) {
 				path: field.options.dest,
 				size: file.size,
 				filetype: filetype,
+				href: field.options.prefix + '/' + filename,
 			};
 
 			if (update) {
