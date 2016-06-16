@@ -2,8 +2,53 @@ import Field from '../Field';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Button, FormField, FormInput, FormNote } from 'elemental';
+import Lightbox from '../../components/Lightbox';
+import classnames from 'classnames';
+
+const iconClassUploadPending = [
+	'upload-pending',
+	'mega-octicon',
+	'octicon-cloud-upload',
+];
+
+const iconClassDeletePending = [
+	'delete-pending',
+	'mega-octicon',
+	'octicon-x',
+];
 
 module.exports = Field.create({
+
+	openLightbox (index) {
+		event.preventDefault();
+		this.setState({
+			lightboxIsVisible: true,
+			lightboxImageIndex: index,
+		});
+	},
+
+	closeLightbox () {
+		this.setState({
+			lightboxIsVisible: false,
+			lightboxImageIndex: null,
+		});
+	},
+
+	renderLightbox () {
+		const { value } = this.props;
+		if (!value || !Object.keys(value).length) return;
+
+		const images = [value.url];
+
+		return (
+			<Lightbox
+				images={images}
+				initialImage={this.state.lightboxImageIndex}
+				isOpen={this.state.lightboxIsVisible}
+				onCancel={this.closeLightbox}
+			/>
+		);
+	},
 
 	shouldCollapse () {
 		return this.props.collapse && !this.hasExisting();
@@ -98,13 +143,19 @@ module.exports = Field.create({
 		}
 	},
 
+	getFullUrl () {
+		var http = 'http://';
+		return http + window.location.host + this.props.value.href;
+	},
+
 	renderFileDetails (add) {
 		var values = null;
+		var full
 
 		if (this.hasFile() && !this.state.removeExisting) {
 			values = (
 				<div className="file-values">
-					<FormInput noedit>{this.getFilename()}</FormInput>
+					<FormInput noedit>{this.getFullUrl()}</FormInput>
 				</div>
 			);
 		}
@@ -175,6 +226,45 @@ module.exports = Field.create({
 		return <input type="hidden" name={this.props.paths.action} className="field-action" value={this.state.action} />;
 	},
 
+	/**
+	 * Render an image preview
+	 */
+	renderImagePreview () {
+		var iconClassName;
+		var className = ['image-preview'];
+
+		if (this.hasLocal()) {
+			iconClassName = classnames(iconClassUploadPending);
+		} else if (this.state.removeExisting) {
+			className.push(' removed');
+			iconClassName = classnames(iconClassDeletePending);
+		}
+		className = classnames(className);
+
+		var body = [this.renderImagePreviewThumbnail()];
+		if (iconClassName) body.push(<div key={this.props.path + '_preview_icon'} className={iconClassName} />);
+
+		var url = this.props.value.href;
+
+		if (url) {
+			body = <a className="img-thumbnail" href={url} onClick={this.openLightbox.bind(this, 0)} target="__blank">{body}</a>;
+		} else {
+			body = <div className="img-thumbnail">{body}</div>;
+		}
+
+		return (
+			<div key={this.getFilename() + '_preview'} className={className}>
+				{body}
+			</div>
+		);
+	},
+
+	renderImagePreviewThumbnail () {
+		var url = this.props.value.href;
+
+		return <img key={this.props.path + '_preview_thumbnail'} className="img-load" style={{ height: '90' }} src={url} />;
+	},
+
 	renderFileToolbar () {
 		return (
 			<div key={this.props.path + '_toolbar'} className="file-toolbar">
@@ -195,17 +285,20 @@ module.exports = Field.create({
 	},
 
 	renderUI () {
+		console.log(this.props);
 		var container = [];
 		var body = [];
 		var hasFile = this.hasFile();
 
 		if (this.shouldRenderField()) {
 			if (hasFile) {
+				container.push(this.renderImagePreview());
 				container.push(this.renderFileDetails(this.renderAlert()));
 			}
 			body.push(this.renderFileToolbar());
 		} else {
 			if (hasFile) {
+				container.push(this.renderImagePreview());
 				container.push(this.renderFileDetails());
 			} else {
 				container.push(<FormInput noedit>no file</FormInput>);

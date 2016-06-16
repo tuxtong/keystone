@@ -59,9 +59,9 @@ localfile.prototype.addToSchema = function () {
 		path: this._path.append('.path'),
 		size: this._path.append('.size'),
 		filetype: this._path.append('.filetype'),
+		href: this._path.append('.href'),
 		// virtuals
 		exists: this._path.append('.exists'),
-		href: this._path.append('.href'),
 		upload: this._path.append('_upload'),
 		action: this._path.append('_action'),
 	};
@@ -72,6 +72,7 @@ localfile.prototype.addToSchema = function () {
 		path: String,
 		size: Number,
 		filetype: String,
+		href: String,
 	});
 
 	schema.add(schemaPaths);
@@ -94,9 +95,9 @@ localfile.prototype.addToSchema = function () {
 	});
 
 	// The .href virtual returns the public path of the file
-	schema.virtual(paths.href).get(function () {
-		return field.href(this);
-	});
+	// schema.virtual(paths.href).get(function () {
+	// 	return field.href(this);
+	// });
 
 	// reset clears the value of the field
 	var reset = function (item) {
@@ -105,6 +106,7 @@ localfile.prototype.addToSchema = function () {
 			path: '',
 			size: 0,
 			filetype: '',
+			href: '',
 		});
 	};
 
