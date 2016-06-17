@@ -35,7 +35,11 @@ var LocalFileColumn = React.createClass({
 	},
 
 	isPicture () {
-		return this.getValue().originalname.match(/\.(jpeg|jpg|gif|png)$/) != null;
+		var value = this.getValue();
+		if (value && value.originalname)
+			return value.originalname.match(/\.(jpeg|jpg|gif|png)$/) != null;
+		else
+			return false;
 	},
 
 	renderImageThumbnail () {
@@ -53,7 +57,7 @@ var LocalFileColumn = React.createClass({
 					<span style={boxStyle}>
 						{this.isPicture() && this.renderImageThumbnail()}
 					</span>
-					{this.getValue().filename}
+					{this.getValue().filename || 'No file'}
 				</span>
 			</ItemsTableValue>
 		);
