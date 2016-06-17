@@ -2,8 +2,58 @@ import Field from '../Field';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Button, FormField, FormInput, FormNote } from 'elemental';
+import Lightbox from '../../components/Lightbox';
+import classnames from 'classnames';
+
+const previewStyle = {
+	float: 'left',
+	margin: '0 10px 10px 0'
+};
+
+const iconClassUploadPending = [
+	'upload-pending',
+	'mega-octicon',
+	'octicon-cloud-upload',
+];
+
+const iconClassDeletePending = [
+	'delete-pending',
+	'mega-octicon',
+	'octicon-x',
+];
 
 module.exports = Field.create({
+
+	openLightbox (index) {
+		event.preventDefault();
+		this.setState({
+			lightboxIsVisible: true,
+			lightboxImageIndex: index,
+		});
+	},
+
+	closeLightbox () {
+		this.setState({
+			lightboxIsVisible: false,
+			lightboxImageIndex: null,
+		});
+	},
+
+	renderLightbox () {
+		const { value } = this.props;
+		if (!value || !Object.keys(value).length) return;
+
+		const images = [value.url];
+
+		return (
+			<Lightbox
+				images={images}
+				initialImage={this.state.lightboxImageIndex}
+				isOpen={this.state.lightboxIsVisible}
+				onCancel={this.closeLightbox}
+			/>
+		);
+	},
 
 	shouldCollapse () {
 		return this.props.collapse && !this.hasExisting();
@@ -37,22 +87,22 @@ module.exports = Field.create({
 		this.fileFieldNode().value = '';
 		this.setState({
 			removeExisting: false,
-			localSource:    null,
-			origin:         false,
-			action:         null
+			localSource: null,
+			origin: false,
+			action: null,
 		});
 	},
 
-	fileChanged  (event) {//eslint-disable-line no-unused-vars
+	fileChanged (event) { // eslint-disable-line no-unused-vars
 		this.setState({
-			origin: 'local'
+			origin: 'local',
 		});
 	},
 
-	removeFile  (e) {
+	removeFile (e) {
 		var state = {
 			localSource: null,
-			origin: false
+			origin: false,
 		};
 
 		if (this.hasLocal()) {
@@ -87,7 +137,7 @@ module.exports = Field.create({
 	},
 
 	hasExisting () {
-		return !!this.props.value.filename;
+		return this.props.value && !!this.props.value.filename;
 	},
 
 	getFilename () {
@@ -98,13 +148,25 @@ module.exports = Field.create({
 		}
 	},
 
-	renderFileDetails  (add) {
+	getFullUrl () {
+		if (this.props.value.href) {
+			var http = 'http://';
+			return http + window.location.host + this.props.value.href;
+		} else {
+			return null;
+		}
+	},
+
+	renderFileDetails (add) {
+		var isPicture = this.getFilename().match(/\.(jpeg|jpg|gif|png)$/) != null;
 		var values = null;
 
 		if (this.hasFile() && !this.state.removeExisting) {
 			values = (
-				<div className="file-values">
-					<FormInput noedit>{this.getFilename()}</FormInput>
+				<div className="file-values" style={previewStyle}>
+					{isPicture && this.renderImagePreview()}
+					{this.getFullUrl() && <FormInput noedit>{this.getFullUrl()}</FormInput>}
+					{add}
 				</div>
 			);
 		}
@@ -112,7 +174,6 @@ module.exports = Field.create({
 		return (
 			<div key={this.props.path + '_details'} className="file-details">
 				{values}
-				{add}
 			</div>
 		);
 	},
@@ -120,19 +181,19 @@ module.exports = Field.create({
 	renderAlert () {
 		if (this.hasLocal()) {
 			return (
-				<div className="file-values upload-queued">
+				<div className="file-values upload-queued" style={{float: 'left'}}>
 					<FormInput noedit>File selected - save to upload</FormInput>
 				</div>
 			);
 		} else if (this.state.origin === 'cloudinary') {
 			return (
-				<div className="file-values select-queued">
+				<div className="file-values select-queued" style={{float: 'left'}}>
 					<FormInput noedit>File selected from Cloudinary</FormInput>
 				</div>
 			);
 		} else if (this.state.removeExisting) {
 			return (
-				<div className="file-values delete-queued">
+				<div className="file-values delete-queued" style={{float: 'left'}}>
 					<FormInput noedit>File {this.props.autoCleanup ? 'deleted' : 'removed'} - save to confirm</FormInput>
 				</div>
 			);
@@ -175,6 +236,45 @@ module.exports = Field.create({
 		return <input type="hidden" name={this.props.paths.action} className="field-action" value={this.state.action} />;
 	},
 
+	/**
+	 * Render an image preview
+	 */
+	renderImagePreview () {
+		var iconClassName;
+		var className = ['image-preview'];
+
+		if (this.hasLocal()) {
+			iconClassName = classnames(iconClassUploadPending);
+		} else if (this.state.removeExisting) {
+			className.push(' removed');
+			iconClassName = classnames(iconClassDeletePending);
+		}
+		className = classnames(className);
+
+		var body = [this.renderImagePreviewThumbnail()];
+		if (iconClassName) body.push(<div key={this.props.path + '_preview_icon'} className={iconClassName} />);
+
+		var url = this.props.value.href;
+
+		if (url) {
+			body = <a className="img-thumbnail" href={url} onClick={this.openLightbox.bind(this, 0)} target="__blank">{body}</a>;
+		} else {
+			body = <div className="img-thumbnail">{body}</div>;
+		}
+
+		return (
+			<div key={this.props.path + '_preview'} className={className} style={previewStyle}>
+				{body}
+			</div>
+		);
+	},
+
+	renderImagePreviewThumbnail () {
+		var url = this.props.value.href;
+
+		return <img key={this.props.path + '_preview_thumbnail'} className="img-load" style={{ height: '90' }} src={url} />;
+	},
+
 	renderFileToolbar () {
 		return (
 			<div key={this.props.path + '_toolbar'} className="file-toolbar">
@@ -201,11 +301,13 @@ module.exports = Field.create({
 
 		if (this.shouldRenderField()) {
 			if (hasFile) {
+				// container.push(this.renderImagePreview());
 				container.push(this.renderFileDetails(this.renderAlert()));
 			}
 			body.push(this.renderFileToolbar());
 		} else {
 			if (hasFile) {
+				// container.push(this.renderImagePreview());
 				container.push(this.renderFileDetails());
 			} else {
 				container.push(<FormInput noedit>no file</FormInput>);
@@ -213,7 +315,7 @@ module.exports = Field.create({
 		}
 
 		return (
-			<FormField label={this.props.label} className="field-type-localfile">
+			<FormField label={this.props.label} className="field-type-localfile" htmlFor={this.props.path}>
 
 				{this.renderFileField()}
 				{this.renderFileAction()}
@@ -224,6 +326,6 @@ module.exports = Field.create({
 
 			</FormField>
 		);
-	}
+	},
 
 });

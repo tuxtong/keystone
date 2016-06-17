@@ -1,20 +1,15 @@
-import _ from 'underscore';
+import _ from 'lodash';
 import bytes from 'bytes';
 import Field from '../Field';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Button, FormField, FormInput, FormNote } from 'elemental';
 
-/**
- * TODO:
- * - Remove dependency on underscore
- */
-
 const ICON_EXTS = [
 	'aac', 'ai', 'aiff', 'avi', 'bmp', 'c', 'cpp', 'css', 'dat', 'dmg', 'doc', 'dotx', 'dwg', 'dxf', 'eps', 'exe', 'flv', 'gif', 'h',
 	'hpp', 'html', 'ics', 'iso', 'java', 'jpg', 'js', 'key', 'less', 'mid', 'mp3', 'mp4', 'mpg', 'odf', 'ods', 'odt', 'otp', 'ots',
 	'ott', 'pdf', 'php', 'png', 'ppt', 'psd', 'py', 'qt', 'rar', 'rb', 'rtf', 'sass', 'scss', 'sql', 'tga', 'tgz', 'tiff', 'txt',
-	'wav', 'xls', 'xlsx', 'xml', 'yml', 'zip'
+	'wav', 'xls', 'xlsx', 'xml', 'yml', 'zip',
 ];
 
 var LocalFilesFieldItem = React.createClass({
@@ -22,7 +17,6 @@ var LocalFilesFieldItem = React.createClass({
 		deleted: React.PropTypes.bool,
 		filename: React.PropTypes.string,
 		isQueued: React.PropTypes.bool,
-		key: React.PropTypes.number,
 		size: React.PropTypes.number,
 		toggleDelete: React.PropTypes.func,
 	},
@@ -37,10 +31,11 @@ var LocalFilesFieldItem = React.createClass({
 	},
 
 	render () {
-		const { filename, originalname, itemId, listKey } = this.props;
+		const { filename, originalname, itemId, listKey, href } = this.props;
 		const isPicture = originalname && originalname.match(/\.(jpeg|jpg|gif|png)$/) != null;
+		const ext = filename.split('.').pop();
 		let iconName = '_blank';
-		if (_.contains(ICON_EXTS, ext)) iconName = ext;
+		if (_.includes(ICON_EXTS, ext)) iconName = ext;
 
 		let note;
 		if (this.props.deleted) {
@@ -54,24 +49,26 @@ var LocalFilesFieldItem = React.createClass({
 				<div style={{display: 'flex'}}>
 					{isPicture &&
 						<div style={{display: 'flex', width: 150, marginRight: 10}}>
-							<img style={{width: '100%', height: '100%'}} key="file-type-icon" className="file-icon" src={`/files/${listKey}/${itemId}/${filename}/${originalname}`}/>
+							<img style={{width: '100%', height: '100%'}} key="file-type-icon" className="file-icon" src={href}/>
 						</div>
 					}
 					<div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: 100, width: '100%'}}>
 						<FormInput key="file-name" noedit className="field-type-localfiles__filename">
-							<a href={`/files/${listKey}/${itemId}/${filename}/${originalname}`}>{originalname}</a>
+							<a href={href}>{originalname}</a>
 							{this.props.size ? ' (' + bytes(this.props.size) + ')' : null}
 						</FormInput>
 						{note}
-						<span style={{fontSize: 12}}>{`url: /files/${listKey}/${itemId}/${filename}/${originalname}`}</span>
+						<span style={{fontSize: 12}}>{`http:\/\/${window.location.host}${href}`}</span>
 						<div style={{borderRadius: '0.3em', borderStyle: 'solid', borderWidth: 1, borderColor: '#ccc #bdbdbd #adadad', backgroundImage: 'linear-gradient(to bottom, #fafafa 0, #eaeaea 100%', alignSelf: 'flex-end'}}>{this.renderActionButton()}</div>
 					</div>
 				</div>
 			</FormField>
 		);
-	}
+	},
 
 });
+
+var tempId = 0;
 
 module.exports = Field.create({
 
@@ -79,7 +76,7 @@ module.exports = Field.create({
 		var items = [];
 		var self = this;
 
-		_.each(this.props.value, function (item) {
+		_.forEach(this.props.value, function (item) {
 			self.pushItem(item, items);
 		});
 
@@ -89,11 +86,12 @@ module.exports = Field.create({
 	removeItem (id) {
 		var thumbs = [];
 		var self = this;
-		_.each(this.state.items, function (thumb) {
+		_.forEach(this.state.items, function (thumb) {
+			var newProps = Object.assign({}, thumb.props);
 			if (thumb.props._id === id) {
-				thumb.props.deleted = !thumb.props.deleted;
+				newProps.deleted = !thumb.props.deleted;
 			}
-			self.pushItem(thumb.props, thumbs);
+			self.pushItem(newProps, thumbs);
 		});
 
 		this.setState({ items: thumbs });
@@ -103,7 +101,6 @@ module.exports = Field.create({
 		const {listKey} = this.props
 		const {itemId} = this.props
 		thumbs = thumbs || this.state.items;
-		var i = thumbs.length;
 		args.toggleDelete = this.removeItem.bind(this, args._id);
 		args.shouldRenderActionButton = this.shouldRenderField();
 		args.adminPath = Keystone.adminPath;
@@ -124,7 +121,7 @@ module.exports = Field.create({
 		this.setState({
 			items: this.state.items.filter(function (thumb) {
 				return !thumb.props.isQueued;
-			})
+			}),
 		});
 	},
 
@@ -132,7 +129,7 @@ module.exports = Field.create({
 		var self = this;
 
 		var files = event.target.files;
-		_.each(files, function (f) {
+		_.forEach(files, function (f) {
 			self.pushItem({ isQueued: true, filename: f.name });
 			self.forceUpdate();
 		});
@@ -190,7 +187,7 @@ module.exports = Field.create({
 	renderFieldAction () {
 		var value = '';
 		var remove = [];
-		_.each(this.state.items, function (thumb) {
+		_.forEach(this.state.items, function (thumb) {
 			if (thumb && thumb.props.deleted) remove.push(thumb.props._id);
 		});
 		if (remove.length) value = 'delete:' + remove.join(',');
@@ -202,14 +199,14 @@ module.exports = Field.create({
 		return <input ref="uploads" className="field-uploads" type="hidden" name={this.props.paths.uploads} />;
 	},
 
-	renderNote: function() {
+	renderNote: function () {
 		if (!this.props.note) return null;
 		return <FormNote note={this.props.note} />;
 	},
 
 	renderUI () {
 		return (
-			<FormField label={this.props.label} className="field-type-localfiles">
+			<FormField label={this.props.label} className="field-type-localfiles" htmlFor={this.props.path}>
 				{this.renderFieldAction()}
 				{this.renderUploadsField()}
 				{this.renderFileField()}
@@ -218,5 +215,5 @@ module.exports = Field.create({
 				{this.renderNote()}
 			</FormField>
 		);
-	}
+	},
 });
