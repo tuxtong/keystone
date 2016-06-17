@@ -5,6 +5,11 @@ import { Button, FormField, FormInput, FormNote } from 'elemental';
 import Lightbox from '../../components/Lightbox';
 import classnames from 'classnames';
 
+const previewStyle = {
+	float: 'left',
+	margin: '0 10px 10px 0'
+};
+
 const iconClassUploadPending = [
 	'upload-pending',
 	'mega-octicon',
@@ -144,8 +149,12 @@ module.exports = Field.create({
 	},
 
 	getFullUrl () {
-		var http = 'http://';
-		return http + window.location.host + this.props.value.href;
+		if (this.props.value.href) {
+			var http = 'http://';
+			return http + window.location.host + this.props.value.href;
+		} else {
+			return null;
+		}
 	},
 
 	renderFileDetails (add) {
@@ -154,11 +163,10 @@ module.exports = Field.create({
 
 		if (this.hasFile() && !this.state.removeExisting) {
 			values = (
-				<div className="file-values">
-					{isPicture &&
-						this.renderImagePreview()
-					}
-					<FormInput noedit>{this.getFullUrl()}</FormInput>
+				<div className="file-values" style={previewStyle}>
+					{isPicture && this.renderImagePreview()}
+					{this.getFullUrl() && <FormInput noedit>{this.getFullUrl()}</FormInput>}
+					{add}
 				</div>
 			);
 		}
@@ -166,7 +174,6 @@ module.exports = Field.create({
 		return (
 			<div key={this.props.path + '_details'} className="file-details">
 				{values}
-				{add}
 			</div>
 		);
 	},
@@ -174,19 +181,19 @@ module.exports = Field.create({
 	renderAlert () {
 		if (this.hasLocal()) {
 			return (
-				<div className="file-values upload-queued">
+				<div className="file-values upload-queued" style={{float: 'left'}}>
 					<FormInput noedit>File selected - save to upload</FormInput>
 				</div>
 			);
 		} else if (this.state.origin === 'cloudinary') {
 			return (
-				<div className="file-values select-queued">
+				<div className="file-values select-queued" style={{float: 'left'}}>
 					<FormInput noedit>File selected from Cloudinary</FormInput>
 				</div>
 			);
 		} else if (this.state.removeExisting) {
 			return (
-				<div className="file-values delete-queued">
+				<div className="file-values delete-queued" style={{float: 'left'}}>
 					<FormInput noedit>File {this.props.autoCleanup ? 'deleted' : 'removed'} - save to confirm</FormInput>
 				</div>
 			);
@@ -235,10 +242,6 @@ module.exports = Field.create({
 	renderImagePreview () {
 		var iconClassName;
 		var className = ['image-preview'];
-		var style = {
-			float: 'left',
-			margin: '0 10px 10px 0'
-		};
 
 		if (this.hasLocal()) {
 			iconClassName = classnames(iconClassUploadPending);
@@ -254,13 +257,13 @@ module.exports = Field.create({
 		var url = this.props.value.href;
 
 		if (url) {
-			body = <a className="img-thumbnail" href={url} onClick={this.openLightbox.bind(this, 0)} target="__blank" style={style}>{body}</a>;
+			body = <a className="img-thumbnail" href={url} onClick={this.openLightbox.bind(this, 0)} target="__blank">{body}</a>;
 		} else {
 			body = <div className="img-thumbnail">{body}</div>;
 		}
 
 		return (
-			<div>
+			<div key={this.props.path + '_preview'} className={className} style={previewStyle}>
 				{body}
 			</div>
 		);
@@ -292,7 +295,6 @@ module.exports = Field.create({
 	},
 
 	renderUI () {
-		console.log(this.props);
 		var container = [];
 		var body = [];
 		var hasFile = this.hasFile();
